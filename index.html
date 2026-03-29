@@ -59,8 +59,23 @@
       </div>
     </div>
     <div id="firebase-login">
-      <button id="firebase-login-btn" type="button">Sign in with Google</button>
-      <div id="firebase-user" style="display:none;"></div>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <input id="firebase-email" type="email" placeholder="Email" style="padding:6px 8px; border-radius:6px; border:1px solid #ccc; font-size:12px;">
+        <input id="firebase-pass" type="password" placeholder="Password" style="padding:6px 8px; border-radius:6px; border:1px solid #ccc; font-size:12px;">
+        <div style="display:flex; gap:6px;">
+          <button id="firebase-email-signin" type="button">Email Sign In</button>
+          <button id="firebase-email-signup" type="button">Email Sign Up</button>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button id="firebase-login-btn" type="button">Google Sign In</button>
+          <button id="firebase-anon-btn" type="button">Anonymous</button>
+        </div>
+        <button id="firebase-signout" type="button" style="background:#555;">Sign Out</button>
+        <div id="firebase-user" style="display:none;"></div>
+      </div>
+    </div>
+    <div id="auth-blocker" style="position:fixed; inset:0; background:rgba(0,0,0,0.8); color:#fff; display:flex; align-items:center; justify-content:center; z-index:30; font-family:Arial, sans-serif; font-size:18px; text-align:center; padding:20px;">
+      Sign in to play
     </div>
     <script>
       var canvas = document.querySelector("#unity-canvas");
@@ -176,16 +191,22 @@
         function setUserUI(user) {
           var userEl = document.getElementById("firebase-user");
           var btnEl = document.getElementById("firebase-login-btn");
+          var signOutBtn = document.getElementById("firebase-signout");
+          var blocker = document.getElementById("auth-blocker");
           if (!userEl || !btnEl) return;
           if (user) {
             userEl.style.display = "block";
             userEl.textContent = user.displayName || user.email || "Signed in";
             btnEl.textContent = "Signed in";
             btnEl.disabled = true;
+            if (signOutBtn) signOutBtn.disabled = false;
+            if (blocker) blocker.style.display = "none";
           } else {
             userEl.style.display = "none";
             btnEl.textContent = "Sign in with Google";
             btnEl.disabled = false;
+            if (signOutBtn) signOutBtn.disabled = true;
+            if (blocker) blocker.style.display = "flex";
           }
         }
 
@@ -215,6 +236,48 @@
         var loginBtn = document.getElementById("firebase-login-btn");
         if (loginBtn) {
           loginBtn.addEventListener("click", signIn);
+        }
+
+        var emailSignInBtn = document.getElementById("firebase-email-signin");
+        if (emailSignInBtn) {
+          emailSignInBtn.addEventListener("click", function() {
+            var email = document.getElementById("firebase-email").value.trim();
+            var pass = document.getElementById("firebase-pass").value;
+            if (!email || !pass) return;
+            auth.signInWithEmailAndPassword(email, pass).catch(function(err) {
+              console.warn("Email sign-in failed:", err);
+            });
+          });
+        }
+
+        var emailSignUpBtn = document.getElementById("firebase-email-signup");
+        if (emailSignUpBtn) {
+          emailSignUpBtn.addEventListener("click", function() {
+            var email = document.getElementById("firebase-email").value.trim();
+            var pass = document.getElementById("firebase-pass").value;
+            if (!email || !pass) return;
+            auth.createUserWithEmailAndPassword(email, pass).catch(function(err) {
+              console.warn("Email sign-up failed:", err);
+            });
+          });
+        }
+
+        var anonBtn = document.getElementById("firebase-anon-btn");
+        if (anonBtn) {
+          anonBtn.addEventListener("click", function() {
+            auth.signInAnonymously().catch(function(err) {
+              console.warn("Anonymous sign-in failed:", err);
+            });
+          });
+        }
+
+        var signOutBtn = document.getElementById("firebase-signout");
+        if (signOutBtn) {
+          signOutBtn.addEventListener("click", function() {
+            auth.signOut().catch(function(err) {
+              console.warn("Sign out failed:", err);
+            });
+          });
         }
 
         auth.onAuthStateChanged(function(user) {
