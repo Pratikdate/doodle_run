@@ -6,9 +6,40 @@
     <title>Unity Web Player | doodle_fight</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
-    <script src="https://accounts.google.com/gsi/client" async></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+    <style>
+      #firebase-login {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: Arial, sans-serif;
+      }
+      #firebase-login button {
+        background: #1a73e8;
+        color: #fff;
+        border: 0;
+        padding: 8px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      #firebase-user {
+        color: #fff;
+        background: rgba(0,0,0,0.6);
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        max-width: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    </style>
   </head>
   <body>
     <div id="unity-container" class="unity-desktop">
@@ -25,6 +56,10 @@
         <div id="unity-fullscreen-button"></div>
         <div id="unity-build-title">doodle_fight</div>
       </div>
+    </div>
+    <div id="firebase-login">
+      <button id="firebase-login-btn" type="button">Sign in with Google</button>
+      <div id="firebase-user" style="display:none;"></div>
     </div>
     <script>
       var canvas = document.querySelector("#unity-canvas");
@@ -137,22 +172,54 @@
         var auth = firebase.auth();
         var provider = new firebase.auth.GoogleAuthProvider();
 
-        auth.onAuthStateChanged(function(user) {
+        function setUserUI(user) {
+          var userEl = document.getElementById("firebase-user");
+          var btnEl = document.getElementById("firebase-login-btn");
+          if (!userEl || !btnEl) return;
           if (user) {
-            var data = {
-              uid: user.uid,
-              displayName: user.displayName || "",
-              email: user.email || "",
-              photoURL: user.photoURL || ""
-            };
-            if (unityInstance) {
-              unityInstance.SendMessage("UGSManager", "OnFirebaseUser", JSON.stringify(data));
-            }
+            userEl.style.display = "block";
+            userEl.textContent = user.displayName || user.email || "Signed in";
+            btnEl.textContent = "Signed in";
+            btnEl.disabled = true;
           } else {
-            // Redirect flow (more reliable in embedded environments)
-            auth.signInWithRedirect(provider).catch(function(err) {
-              console.warn("Firebase sign-in failed:", err);
+            userEl.style.display = "none";
+            btnEl.textContent = "Sign in with Google";
+            btnEl.disabled = false;
+          }
+        }
+
+        function sendUserToUnity(user) {
+          var data = {
+            uid: user.uid,
+            displayName: user.displayName || "",
+            email: user.email || "",
+            photoURL: user.photoURL || ""
+          };
+          if (unityInstance) {
+            unityInstance.SendMessage("UGSManager", "OnFirebaseUser", JSON.stringify(data));
+          } else {
+            window._pendingFirebaseUser = data;
+          }
+        }
+
+        function signIn() {
+          auth.signInWithPopup(provider).catch(function(err) {
+            // Popup can be blocked in some environments; fallback to redirect.
+            auth.signInWithRedirect(provider).catch(function(e2) {
+              console.warn("Firebase sign-in failed:", err || e2);
             });
+          });
+        }
+
+        var loginBtn = document.getElementById("firebase-login-btn");
+        if (loginBtn) {
+          loginBtn.addEventListener("click", signIn);
+        }
+
+        auth.onAuthStateChanged(function(user) {
+          setUserUI(user);
+          if (user) {
+            sendUserToUnity(user);
           }
         });
       }
@@ -167,6 +234,10 @@
                   unityInstance.SetFullscreen(1);
                 };
                 initFirebaseAuth();
+                if (window._pendingFirebaseUser) {
+                  unityInstance.SendMessage("UGSManager", "OnFirebaseUser", JSON.stringify(window._pendingFirebaseUser));
+                  window._pendingFirebaseUser = null;
+                }
 
               }).catch((message) => {
                 alert(message);
