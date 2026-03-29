@@ -6,6 +6,7 @@
     <title>Unity Web Player | doodle_fight</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
+    <script src="https://accounts.google.com/gsi/client" async></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
     <style>
@@ -233,6 +234,10 @@
                 document.querySelector("#unity-fullscreen-button").onclick = () => {
                   unityInstance.SetFullscreen(1);
                 };
+                // Ensure UGS sign-in runs once after Unity boots.
+                try {
+                  unityInstance.SendMessage("UGSManager", "InitializeAndSignInAsync");
+                } catch (e) {}
                 initFirebaseAuth();
                 if (window._pendingFirebaseUser) {
                   unityInstance.SendMessage("UGSManager", "OnFirebaseUser", JSON.stringify(window._pendingFirebaseUser));
