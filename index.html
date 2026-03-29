@@ -7,6 +7,8 @@
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
     <script src="https://accounts.google.com/gsi/client" async></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
   </head>
   <body>
     <div id="unity-container" class="unity-desktop">
@@ -113,14 +115,58 @@
 
       var script = document.createElement("script");
       script.src = loaderUrl;
+      var unityInstance = null;
+
+      function initFirebaseAuth() {
+        if (typeof firebase === 'undefined') return;
+        if (window._firebaseInit) return;
+        window._firebaseInit = true;
+
+        var firebaseConfig = {
+          apiKey: "AIzaSyBeDLV96M5sVq26nMOikoG2ioa6zpigSjg",
+          authDomain: "mashroom-75719.firebaseapp.com",
+          projectId: "mashroom-75719",
+          storageBucket: "mashroom-75719.firebasestorage.app",
+          messagingSenderId: "948596753293",
+          appId: "1:948596753293:web:a04532d72f1b02403bf3c4",
+          measurementId: "G-REW0T5V325"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+
+        var auth = firebase.auth();
+        var provider = new firebase.auth.GoogleAuthProvider();
+
+        auth.onAuthStateChanged(function(user) {
+          if (user) {
+            var data = {
+              uid: user.uid,
+              displayName: user.displayName || "",
+              email: user.email || "",
+              photoURL: user.photoURL || ""
+            };
+            if (unityInstance) {
+              unityInstance.SendMessage("UGSManager", "OnFirebaseUser", JSON.stringify(data));
+            }
+          } else {
+            // Redirect flow (more reliable in embedded environments)
+            auth.signInWithRedirect(provider).catch(function(err) {
+              console.warn("Firebase sign-in failed:", err);
+            });
+          }
+        });
+      }
+
       script.onload = () => {
         createUnityInstance(canvas, config, (progress) => {
           document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
               }).then((unityInstance) => {
+                window.unityInstance = unityInstance;
                 document.querySelector("#unity-loading-bar").style.display = "none";
                 document.querySelector("#unity-fullscreen-button").onclick = () => {
                   unityInstance.SetFullscreen(1);
                 };
+                initFirebaseAuth();
 
               }).catch((message) => {
                 alert(message);
