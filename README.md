@@ -1,6 +1,8 @@
 # Doodle Run
 
-![Doodle Run Banner](banner.png)Welcome to **Doodle Run**! 
+![Doodle Run Banner](banner.png)
+
+Welcome to **Doodle Run**! 
 
 A fast-paced, action-packed endless runner built with Unity. Survive the hand-drawn hazards, rack up kills, and push your reflexes to the limit in this addictively challenging doodle world.
 
