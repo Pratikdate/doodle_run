@@ -1,6 +1,6 @@
 # Doodle Run
 
-![Doodle Run Banner](banner.png)
+![Doodle Run Banner](image.png)
 
 Welcome to **Doodle Run**! 
 
